@@ -191,7 +191,7 @@ class Node(val id: Int, val genesisTx: Transaction, val network: Network, val rn
     }
 
     fun parentSelection(): List<Transaction> {
-        val eps0 = transactions.values.filter { isStronglyPreferred(it) }
+        val eps0 = transactions.values.filter { queried.contains(it.id) && isStronglyPreferred(it) }
         val eps1 = eps0.filter { conflicts[it.data]!!.size == 1 || it.confidence > 0 }
         val parents = eps1.flatMap { parentSet(it) }.toSet().filterNot { eps1.contains(it) }
         val fallback = transactions.values.reversed().take(5).shuffled(network.rng).take(2)
@@ -206,7 +206,8 @@ class Node(val id: Int, val genesisTx: Transaction, val network: Network, val rn
                 val color = if (isAcc) "color=lightblue; style=filled;" else ""
                 val conflictSetSize = conflicts[it.data]!!.size
                 val pref = if (conflictSetSize > 1 && isPreferred(it)) "*" else ""
-                out.println("\"${it.id}\" [$color label=\"${it.data}$pref, ${it.chit}, ${it.confidence}\"];")
+                val chit = if (queried.contains(it.id)) it.chit.toString() else "?"
+                out.println("\"${it.id}\" [$color label=\"${it.data}$pref, $chit, ${it.confidence}\"];")
             }
             transactions.values.forEach {
                 it.parents.forEach { p->
