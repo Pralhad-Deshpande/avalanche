@@ -1,22 +1,29 @@
 package avalanche
 
+import picocli.CommandLine
 import java.io.File
 import java.util.*
 import kotlin.collections.LinkedHashMap
 
 fun main(args: Array<String>) {
-    val network = Network(50)
+
+    val parameters = Parameters()
+    CommandLine(parameters).parse(*args)
+    if (parameters.helpRequested) {
+        CommandLine.usage(Parameters(), System.out)
+        return
+    }
+
+    val network = Network(parameters)
     val n1 = network.nodes[0]
     val c1 = mutableListOf<Transaction>()
     val c2 = mutableListOf<Transaction>()
 
-    val nrTransactions = if (args.size > 0) args[0].toInt() else 50
-    val doubleSpendRatio = if (args.size > 1) args[1].toDouble() else 0.02
 
-    repeat(nrTransactions) {
+    repeat(parameters.nrTransactions) {
         val n = network.nodes.shuffled(network.rng).first()
         c1.add(n.onGenerateTx(it))
-        if (network.rng.nextDouble() < doubleSpendRatio) {
+        if (network.rng.nextDouble() < parameters.doubleSpendRatio) {
             val d = network.rng.nextInt(it)
             println("double spend of $d")
             val n2 = network.nodes.shuffled(network.rng).first()
@@ -25,7 +32,9 @@ fun main(args: Array<String>) {
 
         network.run()
 
-        n1.dumpDag(File("node-0-${String.format("%03d", it)}.dot"))
+        if (parameters.dumpDags) {
+            n1.dumpDag(File("node-0-${String.format("%03d", it)}.dot"))
+        }
         println("$it: " + String.format("%.3f", fractionAccepted(n)))
     }
 
@@ -64,21 +73,21 @@ data class ConflictSet(
         var size: Int
 )
 
-class Network(size: Int) {
-    val rng = Random(23)
+class Network(val parameters: Parameters) {
+    val rng = Random(parameters.seed)
     val tx = Transaction(UUID.randomUUID(), -1, emptyList(), 1)
-    val nodes = (0..size).map { Node(it, tx.copy(),this, rng) }
+    val nodes = (0..parameters.nrNodes).map { Node(it, parameters, tx.copy(),this, rng) }
     fun run() {
-        nodes.shuffled(rng).take(20).forEach { it.avalancheLoop() }
+        nodes.forEach { it.avalancheLoop() }
     }
 }
 
-class Node(val id: Int, val genesisTx: Transaction, val network: Network, val rng: Random) {
+class Node(val id: Int, parameters: Parameters, val genesisTx: Transaction, val network: Network, val rng: Random) {
 
-    val alpha = 0.8
-    val k by lazy { 5 + network.nodes.size / 100 }
-    val beta1 = 5
-    val beta2 = 5
+    val alpha = parameters.alpha
+    val k  = parameters.k
+    val beta1 = parameters.beta1
+    val beta2 = parameters.beta2
 
     val transactions = LinkedHashMap<UUID, Transaction>(mapOf(genesisTx.id to genesisTx))
     val queried = mutableSetOf<UUID>(genesisTx.id)
