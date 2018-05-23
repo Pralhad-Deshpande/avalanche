@@ -191,10 +191,12 @@ class Node(val id: Int, val genesisTx: Transaction, val network: Network, val rn
     }
 
     fun parentSelection(): List<Transaction> {
-        val eps0 = transactions.values.filter { queried.contains(it.id) && isStronglyPreferred(it) }
+        val eps0 = transactions.values.filter { isStronglyPreferred(it) }
         val eps1 = eps0.filter { conflicts[it.data]!!.size == 1 || it.confidence > 0 }
         val parents = eps1.flatMap { parentSet(it) }.toSet().filterNot { eps1.contains(it) }
-        val fallback = transactions.values.reversed().take(5).shuffled(network.rng).take(2)
+        val fallback = if (transactions.size == 1) listOf(genesisTx)
+                        else transactions.values.reversed().take(10).filter { !isAccepted(it) && conflicts[it.data]!!.size == 1 }.shuffled(network.rng).take(3)
+
         return if (parents.isEmpty()) return fallback else parents
     }
 
