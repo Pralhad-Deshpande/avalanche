@@ -99,12 +99,12 @@ class Node(val id: Int, val genesisTx: Transaction, val network: Network, val rn
 
         tx.parents.forEach {
             if (!transactions.contains(it)) {
-                val t = sender.fetchTx(it)
+                val t = sender.onSendTx(it)
                 onReceiveTx(sender, t)
             }
         }
 
-        if (!conflicts.containsKey(tx.data)) {
+        if (!conflicts.contains(tx.data)) {
             conflicts[tx.data] = ConflictSet(tx, tx, 0, 1)
         } else {
             conflicts[tx.data]!!.size++
@@ -113,7 +113,7 @@ class Node(val id: Int, val genesisTx: Transaction, val network: Network, val rn
         transactions[tx.id] = tx
     }
 
-    fun fetchTx(id: UUID): Transaction {
+    fun onSendTx(id: UUID): Transaction {
         return transactions[id]!!.copy()
     }
 
