@@ -10,10 +10,13 @@ fun main(args: Array<String>) {
     val c1 = mutableListOf<Transaction>()
     val c2 = mutableListOf<Transaction>()
 
-    repeat(50) {
+    val nrTransactions = if (args.size > 0) args[0].toInt() else 50
+    val doubleSpendRatio = if (args.size > 1) args[1].toDouble() else 0.02
+
+    repeat(nrTransactions) {
         val n = network.nodes.shuffled(network.rng).first()
         c1.add(n.onGenerateTx(it))
-        if (network.rng.nextDouble() < 0.02) {
+        if (network.rng.nextDouble() < doubleSpendRatio) {
             val d = network.rng.nextInt(it)
             println("double spend of $d")
             val n2 = network.nodes.shuffled(network.rng).first()
@@ -133,11 +136,13 @@ class Node(val id: Int, val genesisTx: Transaction, val network: Network, val rn
                 // Update the preference for ancestors.
                 parentSet(tx).forEach { p ->
                     p.confidence += 1
+                }
+                parentSet(tx).forEach { p->
                     val cs = conflicts[p.data]!!
                     if (p.confidence > cs.pref.confidence) {
                        cs.pref = p
                     }
-                    if (tx != cs.last) {
+                    if (p.id != cs.last.id) {
                         cs.last = tx
                         cs.count = 0
                     } else {
@@ -206,10 +211,12 @@ class Node(val id: Int, val genesisTx: Transaction, val network: Network, val rn
             transactions.values.forEach {
                 val isAcc = isAccepted(it)
                 val color = if (isAcc) "color=lightblue; style=filled;" else ""
-                val conflictSetSize = conflicts[it.data]!!.size
+                val conflictSet = conflicts[it.data]!!
+                val conflictSetSize = conflictSet.size
+                val conflictCount = conflictSet.count
                 val pref = if (conflictSetSize > 1 && isPreferred(it)) "*" else ""
                 val chit = if (queried.contains(it.id)) it.chit.toString() else "?"
-                out.println("\"${it.id}\" [$color label=\"${it.data}$pref, $chit, ${it.confidence}\"];")
+                out.println("\"${it.id}\" [$color label=\"${it.data}$pref, $chit, ${it.confidence}, $conflictCount\"];")
             }
             transactions.values.forEach {
                 it.parents.forEach { p->
