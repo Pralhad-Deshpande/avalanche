@@ -219,11 +219,8 @@ class Node(val id: Int, parameters: Parameters, val genesisTx: Transaction, val 
         f.printWriter().use { out ->
             out.println("digraph G {")
             transactions.values.forEach {
-                val isAcc = isAccepted(it)
-                val color = if (isAcc) "color=lightblue; style=filled;" else ""
-                val conflictSet = conflicts[it.data]!!
-                val conflictSetSize = conflictSet.size
-                val pref = if (conflictSetSize > 1 && isPreferred(it)) "*" else ""
+                val color = if (isAccepted(it)) "color=lightblue; style=filled;" else ""
+                val pref = if (conflicts[it.data]!!.size > 1 && isPreferred(it)) "*" else ""
                 val chit = if (queried.contains(it.id)) it.chit.toString() else "?"
                 out.println("\"${it.id}\" [$color label=\"${it.data}$pref, $chit, ${it.confidence}\"];")
             }
