@@ -15,9 +15,10 @@ fun main(args: Array<String>) {
         c1.add(n.onGenerateTx(it))
         network.run()
         if (network.rng.nextDouble() < 0.02) {
-            println("double spend of $it")
+            val d = network.rng.nextInt(it)
+            println("double spend of $d")
             val n2 = network.nodes.shuffled(network.rng).first()
-            c2.add(n2.onGenerateTx(it))
+            c2.add(n2.onGenerateTx(d))
             network.run()
         }
 
@@ -82,7 +83,7 @@ class Node(val id: Int, val genesisTx: Transaction, val network: Network, val rn
     val queried = mutableSetOf<UUID>(genesisTx.id)
     val conflicts = mutableMapOf<Int, ConflictSet>(genesisTx.data to ConflictSet(genesisTx, genesisTx, 0, 1))
 
-    val accepted = mutableSetOf<UUID>()
+    val accepted = mutableSetOf<UUID>(genesisTx.id)
     val parentSets = mutableMapOf<UUID, Set<Transaction>>()
 
     fun onGenerateTx(data: Int): Transaction {
@@ -159,12 +160,12 @@ class Node(val id: Int, val genesisTx: Transaction, val network: Network, val rn
     }
 
     fun isAccepted(tx: Transaction): Boolean {
-        if (tx.id == genesisTx.id) return true
         if (accepted.contains(tx.id)) return true
 
         val cs = conflicts[tx.data]!!
-        val isAccepted = ((parentSet(tx).map { isAccepted(it) }.all { it } && cs.size == 1 && tx.confidence > beta1) ||
-                (cs.pref == tx && cs.count > beta2))
+        val parentsAccepted = tx.parents.map { accepted.contains(it) }.all { it }
+        val isAccepted = (parentsAccepted && cs.size == 1 && tx.confidence > beta1) ||
+                (cs.pref == tx && cs.count > beta2)
         if (isAccepted) accepted.add(tx.id)
         return isAccepted
     }
