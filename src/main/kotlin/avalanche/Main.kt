@@ -10,17 +10,17 @@ fun main(args: Array<String>) {
     val c1 = mutableListOf<Transaction>()
     val c2 = mutableListOf<Transaction>()
 
-    repeat(20) {
+    repeat(50) {
         val n = network.nodes.shuffled(network.rng).first()
         c1.add(n.onGenerateTx(it))
-        network.run()
         if (network.rng.nextDouble() < 0.02) {
             val d = network.rng.nextInt(it)
             println("double spend of $d")
             val n2 = network.nodes.shuffled(network.rng).first()
             c2.add(n2.onGenerateTx(d))
-            network.run()
         }
+
+        network.run()
 
         n1.dumpDag(File("node-0-${String.format("%03d", it)}.dot"))
         println("$it: " + String.format("%.3f", fractionAccepted(n)))
@@ -66,9 +66,7 @@ class Network(size: Int) {
     val tx = Transaction(UUID.randomUUID(), -1, emptyList(), 1)
     val nodes = (0..size).map { Node(it, tx.copy(),this, rng) }
     fun run() {
-        repeat(5) {
-            nodes.forEach { it.avalancheLoop() }
-        }
+        nodes.shuffled(rng).take(20).forEach { it.avalancheLoop() }
     }
 }
 
