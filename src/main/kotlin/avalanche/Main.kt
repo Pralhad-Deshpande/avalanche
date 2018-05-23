@@ -214,10 +214,9 @@ class Node(val id: Int, val genesisTx: Transaction, val network: Network, val rn
                 val color = if (isAcc) "color=lightblue; style=filled;" else ""
                 val conflictSet = conflicts[it.data]!!
                 val conflictSetSize = conflictSet.size
-                val conflictCount = conflictSet.count
                 val pref = if (conflictSetSize > 1 && isPreferred(it)) "*" else ""
                 val chit = if (queried.contains(it.id)) it.chit.toString() else "?"
-                out.println("\"${it.id}\" [$color label=\"${it.data}$pref, $chit, ${it.confidence}, $conflictCount\"];")
+                out.println("\"${it.id}\" [$color label=\"${it.data}$pref, $chit, ${it.confidence}\"];")
             }
             transactions.values.forEach {
                 it.parents.forEach { p->
