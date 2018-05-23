@@ -142,8 +142,8 @@ class Node(val id: Int, val genesisTx: Transaction, val network: Network, val rn
                     if (p.confidence > cs.pref.confidence) {
                        cs.pref = p
                     }
-                    if (p.id != cs.last.id) {
-                        cs.last = tx
+                    if (p != cs.last) {
+                        cs.last = p
                         cs.count = 0
                     } else {
                         cs.count++
@@ -164,6 +164,7 @@ class Node(val id: Int, val genesisTx: Transaction, val network: Network, val rn
 
     fun isAccepted(tx: Transaction): Boolean {
         if (accepted.contains(tx.id)) return true
+        if (!queried.contains(tx.id)) return false
 
         val cs = conflicts[tx.data]!!
         val parentsAccepted = tx.parents.map { accepted.contains(it) }.all { it }
