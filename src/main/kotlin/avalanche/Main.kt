@@ -19,7 +19,6 @@ fun main(args: Array<String>) {
     val c1 = mutableListOf<Transaction>()
     val c2 = mutableListOf<Transaction>()
 
-
     repeat(parameters.nrTransactions) {
         val n = network.nodes.shuffled(network.rng).first()
         c1.add(n.onGenerateTx(it))
@@ -78,7 +77,7 @@ class Network(val parameters: Parameters) {
     val tx = Transaction(UUID.randomUUID(), -1, emptyList(), 1)
     val nodes = (0..parameters.nrNodes).map { Node(it, parameters, tx.copy(),this, rng) }
     fun run() {
-        nodes.take(nodes.size/3).forEach { it.avalancheLoop() }
+        nodes.forEach { it.avalancheLoop() }
     }
 }
 
@@ -106,6 +105,7 @@ class Node(val id: Int, parameters: Parameters, val genesisTx: Transaction, val 
     fun onReceiveTx(sender: Node, tx: Transaction) {
         if (transactions.contains(tx.id)) return
         tx.chit = 0
+        tx.confidence = 0
 
         tx.parents.forEach {
             if (!transactions.contains(it)) {
