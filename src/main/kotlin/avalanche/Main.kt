@@ -39,13 +39,8 @@ fun main(args: Array<String>) {
 
     val conflictSets = (c1 + c2).groupBy { it.data }.filterValues { it.size > 1 }
     conflictSets.forEach { v, txs ->
-        val t1 = txs[0]
-        val t2 = txs[1]
-        val accepted1 = network.nodes.map { it.isAccepted(t1) }
-        val accepted2 = network.nodes.map { it.isAccepted(t2) }
-        if (accepted1.any  { it } && accepted2.any { it }) {
-            println("$v: error, accepted1=$accepted1, accepted2=$accepted2")
-        }
+        val acceptance = txs.map { t -> network.nodes.map { it.isAccepted(t) }.any { it } }
+        require(acceptance.filter { it }.size < 2) { "More than one transaction of the conflict set of $v got accepted." }
     }
 }
 
@@ -212,7 +207,7 @@ class Node(val id: Int, parameters: Parameters, val genesisTx: Transaction, val 
         val parents = eps1.flatMap { parentSet(it) }.toSet().filterNot { eps1.contains(it) }
         val fallback = if (transactions.size == 1) listOf(genesisTx)
                         else transactions.values.reversed().take(10).filter { !isAccepted(it) && conflicts[it.data]!!.size == 1 }.shuffled(network.rng).take(3)
-
+        require(parents.isNotEmpty() || fallback.isNotEmpty()) { "Unable to select parents." }
         return if (parents.isEmpty()) return fallback else parents
     }
 
